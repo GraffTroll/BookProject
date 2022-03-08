@@ -251,9 +251,8 @@ def Itogi(message):
         else:
             bot.register_next_step_handler(message, send_text)
 
-while True:
-    try:
-        bot.polling(none_stop=True)
-    except Exception as e:
-        print(e)
-        time.sleep(10)
+if __name__ == '__main__':
+    import os
+    app.debug = True
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
