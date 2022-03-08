@@ -2,9 +2,10 @@ import flask
 import telebot
 from telebot import types
 import os
+import config
 
 server = flask.Flask(__name__)
-bot = telebot.TeleBot('1700158651:AAHDN9aNBOztTUnrpJQEgAQmOeofOt6UIoo')
+bot = telebot.TeleBot(confing.'1700158651:AAHDN9aNBOztTUnrpJQEgAQmOeofOt6UIoo')
 
 @server.route('/' + '1700158651:AAHDN9aNBOztTUnrpJQEgAQmOeofOt6UIoo', methods=['POST'])
 def get_message():
