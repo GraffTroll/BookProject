@@ -1,4 +1,4 @@
-﻿import telebot
+import telebot
 import sqlite3
 import random
 import time
@@ -21,7 +21,7 @@ keyboard3.row('Большие', 'Средние', 'Маленькие', 'Про�
 keyboard_start = telebot.types.ReplyKeyboardMarkup()
 keyboard_start.row('Школьная программа', 'Внеклассное чтение')
 keyboard_klass = telebot.types.ReplyKeyboardMarkup()
-keyboard_klass.row('11', '10', '9', 'Вернуться назад')
+keyboard_klass.row('11', '10', '9')
 A = []
 B = []
 N = []
@@ -48,9 +48,7 @@ def start_text(message):
 
 @bot.message_handler(func=lambda c:True, content_types=['text'])
 def get_klass(message):
-    if message.text == 'Вернуться назад':
-        bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-        bot.register_next_step_handler(message, start_text)
+    global klass
     klass = message.text
     cursor_S.execute(f"SELECT Автор FROM SCHOOL WHERE Класс == {klass};")
     A = cursor_S.fetchall()
@@ -65,15 +63,9 @@ def get_klass(message):
 
 @bot.message_handler(content_types=['text'])
 def continion_1(message):
-    if message.text == 'Вернуться назад':
-        bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-        bot.register_next_step_handler(message, start_text)
-    bot.register_next_step_handler(message, continion_2)
-
-@bot.message_handler(content_types=['text'])
-def continion_2(message):
     num = int(message.text)
-    cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Номер == {num};")
+    print(klass,num)
+    cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Класс == {klass} AND Номер == {num};")
     fails = cursor_S.fetchone()
     with open(f'SchoolBook\{fails[0]}.pdf', 'rb') as f1:
         bot.send_document(message.chat.id, f1)
@@ -251,8 +243,9 @@ def Itogi(message):
         else:
             bot.register_next_step_handler(message, send_text)
 
-if __name__ == '__main__':
-    import os
-    app.debug = True
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(e)
+        time.sleep(10)
