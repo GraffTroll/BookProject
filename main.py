@@ -137,7 +137,7 @@ def get_zanr(message):
 def get_razmer(message):
     global Razmer
     global Books
-    if message.text == 'Пропустить этот шаг':
+    if message.text == 'Пропустить этот шаг' or message.text == 'Пропустить\nэтот\nшаг':
             bot.send_message(message.from_user.id, 'Окей, сейчас подберу для Вас книги :)', reply_markup=keyboard1)
             Razmer = 'Пропуск'
     else:
