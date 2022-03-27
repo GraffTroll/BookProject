@@ -35,6 +35,7 @@ def start_message(message):
 def send_profil(message):
     me = '@Troll_w'
     bot.send_message(message.chat.id, f'Привет, по поводу ошибки или добавления новой книги обратись к {me}')
+    bot.register_next_step_handler(message, send_text)
 
 @bot.message_handler(content_types=['text'])
 def start_text(message):
@@ -50,28 +51,43 @@ def start_text(message):
 def get_klass(message):
     global klass
     klass = message.text
-    cursor_S.execute(f"SELECT Автор FROM SCHOOL WHERE Класс == {klass};")
-    A = cursor_S.fetchall()
-    cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Класс == {klass};")
-    B = cursor_S.fetchall()
-    cursor_S.execute(f"SELECT Номер FROM SCHOOL WHERE Класс == {klass};")
-    N = cursor_S.fetchall()
-    for i in range(len(A)):
-        bot.send_message(message.chat.id, str(N[i])[1:-1][:-1] + ')' + str(A[i])[1:-1][1:-1][:-1] + ' - \'' + str(B[i])[1:-1][:-1] + '\'')
-    bot.send_message(message.chat.id, 'Для выбора книги введите цифру')
-    bot.register_next_step_handler(message, continion_1)
+    try:
+        cursor_S.execute(f"SELECT Автор FROM SCHOOL WHERE Класс == {klass};")
+        A = cursor_S.fetchall()
+        cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Класс == {klass};")
+        B = cursor_S.fetchall()
+        cursor_S.execute(f"SELECT Номер FROM SCHOOL WHERE Класс == {klass};")
+        N = cursor_S.fetchall()
+        for i in range(len(A)):
+            bot.send_message(message.chat.id, str(N[i])[1:-1][:-1] + ')' + str(A[i])[1:-1][1:-1][:-1] + ' - \'' + str(B[i])[1:-1][:-1] + '\'')
+        bot.send_message(message.chat.id, 'Для выбора книги введите цифру')
+        bot.register_next_step_handler(message, continion_1)
+    except BaseException:
+        bot.delete_message(message.chat.id, message.message_id)
+        bot.send_message(message.chat.id, 'Введите предложенный класс')
+        bot.register_next_step_handler(message, get_klass)
 
 @bot.message_handler(content_types=['text'])
 def continion_1(message):
-    num = int(message.text)
-    print(klass,num)
-    cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Класс == {klass} AND Номер == {num};")
-    fails = cursor_S.fetchone()
-    with open(f'SchoolBook\{fails[0]}.pdf', 'rb') as f1:
-        bot.send_document(message.chat.id, f1)
-    bot.send_message(message.chat.id, 'Приятного чтения :D', reply_markup=keyboard_start)
-    bot.delete_message(message.chat.id, message.message_id) # !!!!!!!
-    bot.register_next_step_handler(message, start_text)
+    try:
+        num = int(message.text)
+    except BaseException:
+        bot.delete_message(message.chat.id, message.message_id)
+        bot.send_message(message.chat.id, 'Введите цифровое значение')
+        bot.register_next_step_handler(message, continion_1)
+    else:
+        try:
+            cursor_S.execute(f"SELECT Название FROM SCHOOL WHERE Класс == {klass} AND Номер == {num};")
+            fails = cursor_S.fetchone()
+            with open(f'SchoolBook\{fails[0]}.pdf', 'rb') as f1:
+                bot.send_document(message.chat.id, f1)
+            bot.send_message(message.chat.id, 'Приятного чтения :D', reply_markup=keyboard_start)
+            bot.delete_message(message.chat.id, message.message_id) # !!!!!!!
+            bot.register_next_step_handler(message, start_text)
+        except BaseException:
+            bot.delete_message(message.chat.id, message.message_id)
+            bot.send_message(message.chat.id, 'Введите значение из представленного списка')
+            bot.register_next_step_handler(message, continion_1)
 ######################################################Добавить инлайн кнопки для каждой книги
 
 @bot.message_handler(content_types=['text'])
@@ -127,10 +143,7 @@ def get_razmer(message):
     else:
         Razmer = message.text
         bot.send_message(message.from_user.id, 'Окей, сейчас подберу для Вас книги :)', reply_markup=keyboard1)
-    bot.register_next_step_handler(message, Itogi)
 
-@bot.message_handler(content_types=['text'])
-def Itogi(message):
     if Author == 'Пропуск' and Zanr == 'Пропуск' and Razmer == 'Пропуск':
         bot.send_message(message.from_user.id, 'Дружище, сам то знаешь что хочешь?\n---------------------------------------\nВоспользуйся кнопкой \"Случайную книгу\"')
         bot.register_next_step_handler(message, start_text)
@@ -141,17 +154,14 @@ def Itogi(message):
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
             bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
     elif Author == 'Пропуск' and Razmer == 'Пропуск':
         cursor_B.execute(f"SELECT Произведение FROM BOOK WHERE Жанр == '{Zanr}';")
@@ -159,17 +169,14 @@ def Itogi(message):
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
             bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
     elif Zanr == 'Пропуск' and Razmer == 'Пропуск':
         cursor_B.execute(f"SELECT Произведение FROM BOOK WHERE Автор == '{Author}';")
@@ -177,17 +184,14 @@ def Itogi(message):
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
             bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
     elif Zanr == 'Пропуск':
         cursor_B.execute(f"SELECT Произведение FROM BOOK WHERE Автор == '{Author}' AND Размер =='{Razmer}';")
@@ -195,35 +199,29 @@ def Itogi(message):
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
             bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
     elif Razmer == 'Пропуск':
         cursor_B.execute(f"SELECT Произведение FROM BOOK WHERE Автор == '{Author}' AND Жанр == '{Zanr}';")
         Books = cursor_B.fetchall()
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
-            bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D", reply_markup=keyboard1)
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
     else:
         cursor_B.execute(f"SELECT Произведение FROM BOOK WHERE Автор == '{Author}' AND Жанр == '{Zanr}' AND Размер =='{Razmer}';")
@@ -231,17 +229,14 @@ def Itogi(message):
         if not Books:
             bot.send_message(message.from_user.id, "Прости друг, но кажется моя база данных не может найти книгу, она не такая большая как ты думаешь :(")
             bot.send_message(message.from_user.id, "Но ты можешь попросить добавить их (Команда /help) :D")
+            bot.register_next_step_handler(message, send_text)
         B = Books[random.randint(0, len(Books) - 1)]
         cursor_B.execute(f"SELECT Автор FROM BOOK WHERE Произведение =='{B[0]}';")
         A = cursor_B.fetchone()
         cursor_B.execute(f"SELECT Книга FROM BOOK WHERE Произведение =='{B[0]}';")
         K = cursor_B.fetchone()
         bot.send_message(message.from_user.id, 'Советую тебе прочитать книгу \"' + B[0] + '\"\nАвтор - ' + A[0] + '\n' + K[0])
-        if message.text == 'Вернуться назад':
-            bot.send_message(message.chat.id, 'Возвращаем', reply_markup=keyboard_start)
-            bot.register_next_step_handler(message, start_text)
-        else:
-            bot.register_next_step_handler(message, send_text)
+        bot.register_next_step_handler(message, send_text)
 
 while True:
     try:
